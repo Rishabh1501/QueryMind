@@ -1,0 +1,14 @@
+llm_provider: google
+model_name: gemini-2.5-flash
+api_keys:
+  openai: ${OPENAI_API_KEY}
+  google: ${GOOGLE_API_KEY}
+  anthropic: ${ANTHROPIC_API_KEY}
+
+execution:
+  max_parallel_containers: 5
+  timeout_seconds: 30
+
+data:
+  engine: duckdb # Options: pandas, duckdb
+  chunk_size: 100000 # For pandas chunking if needed
