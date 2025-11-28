@@ -7,7 +7,6 @@ import json
 import os
 import pandas as pd
 from prompts.prompts import QUERY_GENERATOR_SYSTEM_PROMPT, SUMMARIZER_SYSTEM_PROMPT, check_for_jailbreak
-from src.cache_manager import generate_schema_hash
 import logging
 import time
 
@@ -21,7 +20,6 @@ class Agents:
     def query_generator(self, state):
         """
         Generates Pandas/DuckDB code based on the user query and schema.
-        Uses semantic caching to avoid redundant API calls.
         """
         start_time = time.time()
         logger.info("Query Generator: Starting")

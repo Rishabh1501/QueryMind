@@ -1,13 +1,16 @@
 import streamlit as st
 import os
 import tempfile
+import pandas as pd
 from src.graph import create_graph
 from src.data_engine import DataEngine
 from src.utils import load_config
 from langchain_core.messages import HumanMessage, AIMessage
 from src.workflow_viz import AgentWorkflowTracker
-from src.cache_manager import ensure_redis_running
+from src.cache_manager import ensure_redis_running, generate_schema_hash
+from src.llm_factory import get_cache
 import logging
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -80,36 +83,99 @@ if prompt := st.chat_input("Ask a question about your data..."):
         # Run LangGraph Workflow with real-time status
         with st.status("🤖 Processing query...", expanded=True) as status:
             try:
-                status.update(label="💭 Query Generator", state="running")
-                status.write("Analyzing query and generating Python code...")
+                # Generate cache key
+                schema_hash = generate_schema_hash(st.session_state['schema_info'])
+                cache_key = f"{prompt}:{schema_hash}"
                 
-                graph = create_graph()
+                # Check cache first
+                cache = get_cache()
+                cached_result = None
+                if cache:
+                    try:
+                        cached_data = cache.get(prompt, schema_hash)
+                        if cached_data:
+                            try:
+                                # Try to deserialize cached result
+                                cached_result = json.loads(cached_data)
+                                logger.info("✅ FULL CACHE HIT - Skipping entire pipeline")
+                                status.update(label="✅ Retrieved from Cache", state="complete")
+                                status.write("Found cached result - returning instantly!")
+                            except json.JSONDecodeError as e:
+                                # Old or corrupted cache entry - ignore and run fresh
+                                logger.warning(f"Cache entry corrupted or from old version, ignoring: {e}")
+                                cached_result = None
+                    except Exception as e:
+                        logger.warning(f"Cache read error: {e}")
                 
-                initial_state = {
-                    "messages": [HumanMessage(content=prompt)],
-                    "data_path": st.session_state['data_path'],
-                    "schema_info": st.session_state['schema_info'],
-                    "generated_code": "",
-                    "thinking_process": "",
-                    "execution_result": {},
-                    "validation_error": None,
-                    "final_answer": "",
-                    # New agent fields
-                    "query_type": None,
-                    "suggested_insights": None,
-                    "anomalies": None,
-                    "optimization_suggestions": None,
-                    "code_explanation": None,
-                    "execution_plan": None,
-                    "plot_path": None
-                }
-                
-                # Invoke the graph
-                result = graph.invoke(initial_state)
-                
-                status.update(label="✅ Complete", state="complete")
-                
-                final_answer = result.get("final_answer", "I couldn't generate an answer.")
+                if cached_result:
+                    # Use cached result
+                    result = cached_result
+                    final_answer = result.get("final_answer", "I couldn't generate an answer.")
+                else:
+                    # Cache miss - run full pipeline
+                    logger.info("❌ CACHE MISS - Running full pipeline")
+                    status.update(label="💭 Query Generator", state="running")
+                    status.write("Analyzing query and generating Python code...")
+                    
+                    graph = create_graph()
+                    
+                    initial_state = {
+                        "messages": [HumanMessage(content=prompt)],
+                        "data_path": st.session_state['data_path'],
+                        "schema_info": st.session_state['schema_info'],
+                        "generated_code": "",
+                        "thinking_process": "",
+                        "execution_result": {},
+                        "validation_error": None,
+                        "final_answer": "",
+                        # New agent fields
+                        "query_type": None,
+                        "suggested_insights": None,
+                        "anomalies": None,
+                        "optimization_suggestions": None,
+                        "code_explanation": None,
+                        "execution_plan": None,
+                        "plot_path": None
+                    }
+                    
+                    # Invoke the graph
+                    result = graph.invoke(initial_state)
+                    
+                    status.update(label="✅ Complete", state="complete")
+                    
+                    final_answer = result.get("final_answer", "I couldn't generate an answer.")
+                    
+                    # Cache the full result (exclude messages and convert non-serializable objects)
+                    if cache and not result.get("validation_error"):
+                        try:
+                            # Create a cacheable version of the result
+                            cacheable_result = {}
+                            for k, v in result.items():
+                                if k == 'messages':
+                                    # Skip messages to reduce size
+                                    continue
+                                elif k == 'schema_info':
+                                    # Skip schema_info as it may contain DataFrames
+                                    continue
+                                elif isinstance(v, pd.DataFrame):
+                                    # Convert DataFrame to dict
+                                    cacheable_result[k] = v.to_dict()
+                                elif k == 'execution_result' and isinstance(v, dict):
+                                    # Handle execution_result which may contain plot paths
+                                    exec_result = {}
+                                    for ek, ev in v.items():
+                                        if isinstance(ev, pd.DataFrame):
+                                            exec_result[ek] = ev.to_dict()
+                                        else:
+                                            exec_result[ek] = ev
+                                    cacheable_result[k] = exec_result
+                                else:
+                                    cacheable_result[k] = v
+                            
+                            cache.set(prompt, schema_hash, json.dumps(cacheable_result))
+                            logger.info("💾 Stored full result in cache")
+                        except Exception as e:
+                            logger.warning(f"Cache write error: {e}")
                 
                 # Add assistant message to history
                 st.session_state.messages.append({"role": "assistant", "content": final_answer})

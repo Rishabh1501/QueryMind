@@ -12,7 +12,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Initialize global cache
-_query_cache = QueryCache()
+_query_cache = None
+
+def get_cache():
+    """Get or create the global query cache instance."""
+    global _query_cache
+    if _query_cache is None:
+        try:
+            _query_cache = QueryCache()
+            logger.info("Query cache initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize cache: {e}")
+            _query_cache = None
+    return _query_cache
 
 class DirectGeminiLLM(BaseChatModel):
     """Direct Gemini API implementation"""
