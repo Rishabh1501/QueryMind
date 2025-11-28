@@ -13,7 +13,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="Retail Insights Assistant", layout="wide")
+st.set_page_config(page_title="QueryMind", layout="wide")
 
 # Ensure Redis is running
 try:
@@ -22,7 +22,7 @@ except Exception as e:
     st.error(f"⚠️ Redis cache unavailable: {e}. Caching will be disabled.")
     logger.warning(f"Redis not available: {e}")
 
-st.title("🛍️ Retail Insights Assistant")
+st.title("QueryMind")
 
 # Sidebar for configuration and file upload
 with st.sidebar:
