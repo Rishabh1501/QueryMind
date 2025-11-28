@@ -16,7 +16,7 @@ import json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="QueryMind", layout="wide")
+st.set_page_config(page_title="QueryMind", layout="wide", page_icon="logo.png")
 
 # Ensure Redis is running
 try:
@@ -25,10 +25,28 @@ except Exception as e:
     st.error(f"⚠️ Redis cache unavailable: {e}. Caching will be disabled.")
     logger.warning(f"Redis not available: {e}")
 
-st.title("QueryMind")
+# Header with logo in title
+col_logo, col_title = st.columns([0.7, 8])
+# with col_logo:
+#     if os.path.exists("logo.png"):
+#         st.image("logo.png", width=50)
+with col_title:
+    st.markdown("""
+        <div style="margin-top: -5px;">
+            <h1 style="margin: 0; padding: 0;">QueryMind</h1>
+            <p style="margin: 0; padding: 0; opacity: 0.7;">AI-Powered Data Analytics Assistant</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Sidebar for configuration and file upload
 with st.sidebar:
+    # Logo in sidebar
+    if os.path.exists("logo.png"):
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.image("logo.png", width=100)
+        st.markdown("<br>", unsafe_allow_html=True)
+    
     st.header("Configuration")
     
     # File Upload
