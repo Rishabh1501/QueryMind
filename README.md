@@ -1,107 +1,138 @@
-- **Visualization Support**: Request charts and graphs - they're generated and displayed automatically
-- **Thinking Process**: See the AI's reasoning before code generation for transparency
-- **Sandboxed Execution**: All code runs safely inside Docker containers
-- **Multi-LLM Support**: Works with Gemini, OpenAI, Claude, or local Ollama models
-- **Scalable**: Handles 100GB+ datasets via DuckDB
-- **Security**: Built-in prompt injection detection and code validation
+# 🧠 QueryMind: AI-Powered Data Analytics Assistant
 
-## Prerequisites
-1. **Python 3.9+**
-2. **Docker Desktop** (must be running)
-3. **Gemini API Key** (or Ollama for local LLMs)
+**QueryMind** is an advanced AI agent system that transforms natural language questions into executable data analysis code. Built with **LangGraph**, **Streamlit**, and **Docker**, it provides a secure, scalable, and intelligent interface for exploring your data.
 
-## Setup
+![QueryMind](img/querymind.png)
 
-### 1. Install Dependencies
+## ✨ Key Features
+
+- **🗣️ Natural Language Interface**: Ask questions in plain English (e.g., "Show me sales trends by region").
+- **🤖 Multi-Agent Architecture**: A sophisticated pipeline of 8 specialized AI agents working in concert:
+    - **Classifier**: Determines query intent and complexity.
+    - **Generator**: Writes precise Python/Pandas code.
+    - **Optimizer**: Refines code for performance and best practices.
+    - **Executor**: Runs code in a secure, isolated environment.
+    - **Validator**: Checks results and handles errors automatically.
+    - **Summarizer**: Translates technical outputs into business insights.
+    - **Insight Generator**: Proactively suggests follow-up questions.
+    - **Explanation Agent**: Explains the "why" and "how" behind the code.
+- **⚡ Intelligent Caching**: **Redis-based semantic caching** instantly serves results for repeated or similar queries, reducing latency and LLM costs.
+- **📊 Dynamic Visualizations**: Automatically generates interactive charts (Matplotlib/Seaborn) based on your data.
+- **🔒 Secure Sandboxing**: All code execution happens inside isolated **Docker containers** with no network access.
+- **📈 Scalable Data Engine**: Seamlessly handles small files (Pandas) and large 100GB+ datasets (DuckDB).
+- **🧠 Transparent Reasoning**: View the full "Thinking Process" and agent workflow to trust the results.
+
+## 🏗️ Architecture
+
+![System Architecture](img/QueryMind-Architecture.png)
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Python 3.9+**
+- **Docker Desktop** (Required for Redis and Code Execution)
+- **Git**
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/yourusername/blend-360-project.git
+    cd blend-360-project
+    ```
+
+2.  **Create a virtual environment:**
+    ```powershell
+    python -m venv venv
+    .\venv\Scripts\Activate.ps1  # Windows
+    # source venv/bin/activate # Mac/Linux
+    ```
+
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **Configure Environment:**
+    Create a `.env` file in the root directory:
+    ```env
+    GOOGLE_API_KEY=your_gemini_api_key_here
+    # Optional: OPENAI_API_KEY, ANTHROPIC_API_KEY
+    ```
+
+### Running the Application
+
+We provide a helper script to start everything (Redis + Streamlit) automatically:
+
+**Windows:**
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+.\start.ps1
 ```
 
-### 2. Configure API Key
-Create a `.env` file:
-```
-GOOGLE_API_KEY=your_gemini_api_key_here
-```
-
-### 3. Build Docker Image
+**Linux/Mac:**
 ```bash
-docker build -t retail_insights_executor ./docker
+./start.sh
 ```
 
-### 4. Run the Application
-```bash
-streamlit run app.py
-```
+*This script will:*
+1. *Start the Redis container (for caching).*
+2. *Build the Execution Sandbox container (if missing).*
+3. *Launch the Streamlit application.*
 
-## Usage
+## 💡 Usage
 
-1. **Upload Data**: Upload CSV or Excel file via sidebar (sample data in `data/` folder)
-2. **Ask Questions**:
-   - "What is the total sales revenue?"
-   - "Which category has the highest revenue?"
-   - "Show me a bar chart of stock by category"
-   - "Plot the monthly sales trend"
+1.  **Upload Data**: Use the sidebar to upload a CSV or Excel file.
+2.  **Ask Questions**: Type your query in the chat box.
+    - *Descriptive*: "What is the average revenue per customer?"
+    - *Visual*: "Plot the distribution of sales by category."
+    - *Complex*: "Identify the top 3 regions and their growth rate compared to last month."
+3.  **Explore Results**:
+    - View the answer and generated visualizations.
+    - Expand **"View Analysis Details"** to see the generated code and agent reasoning.
+    - Check **"Suggested Follow-up Questions"** for deeper analysis.
 
-## Configuration
+## 🔧 Configuration
 
-Edit `config.yaml`:
+Customize behavior in `config.yaml`:
+
 ```yaml
-llm_provider: google  # Options: google, ollama, openai, anthropic
-model_name: gemini-2.5-flash
+llm_provider: google  # Options: google, openai, anthropic, ollama
+model_name: gemini-2.0-flash-exp
 
 execution:
   max_parallel_containers: 5
   timeout_seconds: 30
 
 data:
-  engine: duckdb  # Use 'duckdb' for 100GB+ data, 'pandas' for smaller files
+  engine: pandas  # Use 'duckdb' for large datasets
 ```
 
-## Architecture
+## 📂 Project Structure
 
-✅ **File Upload Error**: Fixed JSON serialization error when displaying data preview  
-✅ **Query Ambiguity**: Improved prompt to clarify revenue vs quantity questions
-
-### New Features
-✅ **Graph/Plot Support**: Generate matplotlib visualizations on demand  
-✅ **Thinking Process Display**: See AI reasoning before code generation  
-✅ **Security Guardrails**: Jailbreak detection + code validation
-
-## Project Structure
 ```
 blend-360-project/
-├── app.py                 # Streamlit UI
-├── config.yaml           # Configuration
-├── requirements.txt
-├── prompts/
-│   └── prompts.py        # System prompts & security checks
+├── app.py                 # Streamlit Frontend
+├── config.yaml            # Configuration file
+├── docker-compose.yml     # Redis service definition
+├── requirements.txt       # Python dependencies
+├── start.ps1              # Windows startup script
 ├── src/
-│   ├── agents.py         # LangGraph agents
-│   ├── graph.py          # State machine definition
-│   ├── llm_factory.py    # Multi-LLM support
-│   ├── data_engine.py    # Pandas/DuckDB abstraction
-│   └── utils.py          # Docker execution + validation
+│   ├── agents.py          # Agent implementations
+│   ├── graph.py           # LangGraph workflow definition
+│   ├── cache_manager.py   # Redis caching logic
+│   ├── data_engine.py     # Data loading & processing
+│   └── llm_factory.py     # LLM provider abstraction
 ├── docker/
-│   └── Dockerfile        # Execution sandbox (Python + pandas + matplotlib)
-└── data/                 # Sample datasets
+│   └── Dockerfile         # Sandbox container definition
+└── data/                  # Sample datasets
 ```
 
-## Troubleshooting
-- **Docker Error**: Ensure Docker Desktop is running
-- **API Error**: Verify API key in `.env` file
-- **Large Files**: Switch to `engine: duckdb` in `config.yaml` for datasets over 1GB
+## 🛡️ Security
 
-## Scalability
-For 100GB+ datasets:
-1. Set `data.engine: duckdb` in `config.yaml`
-2. DuckDB queries CSV/Parquet files directly from disk (no memory loading)
-3. Results still returned as Pandas DataFrames to agents
+- **Prompt Injection Defense**: System prompts include guardrails against malicious inputs.
+- **Code Validation**: Generated code is statically analyzed before execution.
+- **Isolation**: No code runs on the host machine; everything is contained within Docker.
 
-## Security Notes
-- All code execution happens in isolated Docker containers
-- Containers have no network access
-- File system access limited to `/data` (read) and `/output` (write)
-- Automatic detection of 15+ jailbreak patterns
-- Code scanned for dangerous operations before execution
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
