@@ -120,32 +120,7 @@ class QueryCache:
         except Exception as e:
             logger.error(f"Cache set error: {e}")
     
-    def clear(self):
-        """Clear all cache entries."""
-        try:
-            pattern = "query_cache:*"
-            keys = self.redis_client.keys(pattern)
-            if keys:
-                self.redis_client.delete(*keys)
-                logger.info(f"Cleared {len(keys)} cache entries")
-            else:
-                logger.info("Cache already empty")
-        except Exception as e:
-            logger.error(f"Cache clear error: {e}")
-    
-    def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
-        try:
-            pattern = "query_cache:*"
-            keys = self.redis_client.keys(pattern)
-            
-            return {
-                'total_entries': len(keys),
-                'redis_info': self.redis_client.info('stats')
-            }
-        except Exception as e:
-            logger.error(f"Cache stats error: {e}")
-            return {'total_entries': 0, 'error': str(e)}
+
 
 def generate_schema_hash(schema_info: Dict[str, Any]) -> str:
     """

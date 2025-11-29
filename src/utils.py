@@ -97,9 +97,4 @@ def execute_in_docker(code, data_path, image_name="retail_insights_executor"):
     finally:
         os.remove(script_path)
 
-def build_docker_image(image_name="retail_insights_executor"):
-    client = docker.from_env()
-    dockerfile_path = os.path.join(os.getcwd(), "docker")
-    print(f"Building Docker image {image_name} from {dockerfile_path}...")
-    client.images.build(path=dockerfile_path, tag=image_name)
-    print("Build complete.")
+

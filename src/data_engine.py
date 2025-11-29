@@ -58,23 +58,20 @@ class DataEngine:
         Executes a query. 
         If engine is DuckDB, query should be SQL.
         If engine is Pandas, query should be Python/Pandas code.
-        
-        Wait, the requirement is "Agents generate python pandas query".
-        If we use DuckDB, we can still use DuckDB's Python API which is very pandas-like or SQL.
-        However, to support 100GB+ data, we MUST use SQL or DuckDB's relation API, NOT pure Pandas on the full dataset.
-        
-        BUT, the prompt says "generate python pandas query".
-        
-        Hybrid approach:
-        - If small data: Generate Pandas code.
-        - If large data (DuckDB): Generate SQL or DuckDB Python API code.
-        
-        For now, let's stick to the plan: The agent generates code.
-        If we are in "DuckDB mode", the agent should be instructed to generate SQL or DuckDB python code.
-        
-        This method might just be a helper for the VALIDATION agent or initial inspection.
-        The actual execution happens in the Docker container.
-        
-        So this class is mainly for the 'Data Extraction Agent' to understand the schema.
         """
-        pass
+        if self.engine_type == "duckdb":
+            try:
+                # Execute SQL query
+                result_df = self.connection.execute(query).fetchdf()
+                return {
+                    "success": True, 
+                    "dataframe": result_df,
+                    "row_count": len(result_df),
+                    "preview": result_df.head()
+                }
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        else:
+            # For Pandas, the execution happens in the agent's generated code (in Docker)
+            # This method might be unused for Pandas mode or used for simple validations
+            return {"success": False, "error": "Pandas execution should be handled by the agent generated code."}

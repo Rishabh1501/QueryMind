@@ -6,7 +6,7 @@ from src.data_engine import DataEngine
 import json
 import os
 import pandas as pd
-from prompts.prompts import QUERY_GENERATOR_SYSTEM_PROMPT, SUMMARIZER_SYSTEM_PROMPT, check_for_jailbreak
+from prompts.prompts import QUERY_GENERATOR_SYSTEM_PROMPT, DUCKDB_QUERY_GENERATOR_SYSTEM_PROMPT, SUMMARIZER_SYSTEM_PROMPT, check_for_jailbreak
 import logging
 import time
 
@@ -44,13 +44,31 @@ class Agents:
         data_filename = os.path.basename(data_path) if data_path else 'data.csv'
         container_path = f"/data/{data_filename}"
         
-        # Format the system prompt with data
-        system_prompt = QUERY_GENERATOR_SYSTEM_PROMPT.format(
-            columns=schema_info.get('columns', []),
-            dtypes=schema_info.get('dtypes', []),
-            sample_data=schema_info.get('preview', pd.DataFrame()).to_string() if 'preview' in schema_info else 'N/A',
-            data_path=container_path
-        )
+        # Determine engine type (default to pandas)
+        engine_type = schema_info.get("type", "pandas")
+        
+        if engine_type == "duckdb":
+            # For DuckDB, preview might be a list of tuples or similar, need to handle string conversion
+            preview_data = schema_info.get("preview", "")
+            if hasattr(preview_data, 'to_string'):
+                preview_str = preview_data.to_string()
+            else:
+                preview_str = str(preview_data)
+
+            system_prompt = DUCKDB_QUERY_GENERATOR_SYSTEM_PROMPT.format(
+                table_name=schema_info.get("table_name", "data"),
+                columns=schema_info.get("columns", []),
+                dtypes=schema_info.get("dtypes", []),
+                sample_data=preview_str,
+                data_path=container_path
+            )
+        else:
+            system_prompt = QUERY_GENERATOR_SYSTEM_PROMPT.format(
+                columns=schema_info.get("columns", []),
+                dtypes=schema_info.get("dtypes", []),
+                sample_data=schema_info.get("preview", pd.DataFrame()).to_string() if 'preview' in schema_info else 'N/A',
+                data_path=container_path
+            )
         
         # Gemini requires a HumanMessage
         messages_to_send = [
